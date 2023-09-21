@@ -1,10 +1,11 @@
-pip install peakdetect
+import pip
 from matplotlib.rcsetup import validate_whiskers
 import pywt
 import statistics
-import numpy as np
+import numpy
 import string
 import sys
+from random import randint
 import scipy
 from random import choices
 import matplotlib.pyplot as plt
@@ -12,361 +13,398 @@ from scipy import signal
 import pywt
 from peakdetect import peakdetect
 from pylab import *
-from numpy import*
 import pandas as pd
 import os
 from pandas import DataFrame
-ecgsignal = np.load('test/02717_hr.npy').transpose().reshape((60000,))
-plt.plot(ecgsignal)
-Fignya = []
-R = []
-Itg_danny = []
-T_k = [[]]
-x = linspace (0,  1,  num = 2048)
-data = sin (250  *  pi * x**2)
-coefs=pywt.downcoef('a', data, 'db20', mode='symmetric', level=1)
-st='sym5'
-coeffs = pywt.wavedec(ecgsignal, st, level=5)
-subplot(2, 1, 1)
-plot(coeffs[0],'b',linewidth=2, label='cA,level-5')
-grid()
-
-ecgsignal = coeffs[0]
-findp = []
-for lj in signal.find_peaks(ecgsignal)[0]:
-  findp.append(ecgsignal[lj])
-findp = sorted(findp, reverse=True)[0:20]
-visti = []
-for k in np.where(ecgsignal > 0):
-  visti.append(ecgsignal[k])
-peaks = peakdetect(ecgsignal, lookahead=7, delta=1)
-higherPeaks = np.array(peaks[0])
-lowerPeaks = np.array(peaks[1])
-plt.plot(ecgsignal)
-plt.plot(lowerPeaks[:,0], lowerPeaks[:,1], 'ko')
-razno = [j-i for i, j in zip(lowerPeaks[:,0][:-1], lowerPeaks[:,0][1:])]
-itg_del = []
-itg_zn = []
-pphi = []
-for pph in razno:
-  for i, j in zip(lowerPeaks[:,0][:-1], lowerPeaks[:,0][1:]):
-      if j - i == pph:
-        pphi.append(i)
-  for i, j in zip(lowerPeaks[:,0][:-1], lowerPeaks[:,0][1:]):
-    if j - i == pph:
-      plt.plot(list(range(int(i), int(j))), ecgsignal[int(i):int(j)])
-      itg_del.append(list(range(int(i), int(j))))
-      itg_zn.append(ecgsignal[int(i):int(j)])
-iznan = []
-vosm = []
-for ith in sorted(unique(itg_del)):
-  print('')
-if len(sorted(unique(itg_del))) > 100:
-  Fignya.append('ygy')
-  sys.exit()
-for ded in sorted(unique(itg_del)):
-  up = []
-  iop = scipy.signal.find_peaks(ecgsignal[:ded[0]], distance=30)[0]
-  up.append(ecgsignal[iop[-1]])
-  if len(iop) > 2:
-    up.append(ecgsignal[iop[-2]])
-  up.append(ecgsignal[ded[0]])
-  if ded[-1] - ded[0] > 40:
-    iznan.append(ded)
-  elif ded[-1] - ded[0] < 40:
-    if len(iznan) > 1:
-      iznan.append(iznan[-1] + ded)
-      iznan.pop(-2)
-
 import numpy as np
-def find_nearest(array, value):
-    array = np.asarray(array)
-    idx = (np.abs(array - value)).argmin()
-    return array[idx]
-vh = 0
-iznank = []
-iznan = sorted(unique(iznan))
-sp_l = []
-def perr(iznan, vh, iznank, Itg_danny):
-  for k in iznan:
-   plt.subplots(nrows=1, ncols=1)
-   plt.plot(ecgsignal[k], 'ob')
-   k1, k2 = np.array_split(k, 2)
-   if len(k1) / len(np.array_split(iznan[0], 2)[0]) > 7 and k1[0] + vh != (np.array_split(iznan[0], 2)[0])[0]:
-     T_tk = scipy.signal.find_peaks(ecgsignal[k1])[0][0]
-     R_tk = np.where(ecgsignal[k2] == np.max(ecgsignal[k2]))[0]
-   else:
-     slopes = np.diff(ecgsignal[k1]) / np.diff(k1)
-     sloup = np.diff(ecgsignal[k2][::-1]) / np.diff(k2[::-1])
-     scipy.signal.find_peaks(ecgsignal[k1])
-     idxx = np.argmax(slopes < 0.02)
-     idx = idxx
-     try:
-       uyuuu = np.argmax(slopes[2:] < 0.02)
-       uyuuuy = np.argsort(slopes < 0.02)
+from pylab import *
+def get_ecg(key): # получение закодированного графика экг из файла
+    way = 'train/' + key + '.npy'
+    ecgsig = np.load(way).transpose().reshape((60000,))
+    x = np.linspace(0,  1,  num = 2048)
+    data = np.sin(250 * np.pi * x**2)
+    coefs = pywt.downcoef('a', data, 'db20', mode='symmetric', level=1)
+    st='sym5'
+    coeffs = pywt.wavedec(ecgsig, st, level=5)
+    row = coeffs[0]
+    return row
+def into_one_table(keys): # преобразование графиков в таблицу
+    row = get_ecg(keys[0])
+    row = np.insert(row, 0, int(keys[0].strip('_hr')))
+    table = [row]
+    for i in range(target.index.start + 1, target.index.stop):
+        row = get_ecg(keys[i])
+        row = np.insert(row, 0, int(keys[i].strip('_hr')))
+        table = np.vstack([table, row])
+    table = pd.DataFrame(table)
+    return table
+target = pd.Series(list(map(lambda x: x[:-4], os.listdir('train')[:-2])))
+ECG_data = into_one_table(target) # таблица с графиками
+ECG_data[0] = ECG_data[0].astype('int')
+ECG_data = ECG_data.rename(columns={0: 'ecg_id'})
+ECG_data = ECG_data.sort_values(by=['ecg_id'], ascending=True)
+ECG_data_array = np.array(ECG_data)
+ty = []
+oy = []
+for ecg_1, ecgsignal in enumerate(ECG_data_array):
+  Fignya = []
+  R = []
+  Itg_danny = []
+  T_k = [[]]
+  '''ecgsignal = np.load(ecgsignal).transpose().reshape((60000,))
+  x = linspace (0,  1,  num = 2048)
+  data = sin (250  *  pi * x**2)
+  coefs=pywt.downcoef('a', data, 'db20', mode='symmetric', level=1)
+  st='sym5'
+  coeffs = pywt.wavedec(ecgsignal, st, level=5)
+  subplot(2, 1, 1)
+  plot(coeffs[0],'b',linewidth=2, label='cA,level-5')
+  grid()
 
-       uyuuu = [i for i in uyuuuy if i > scipy.signal.find_peaks(ecgsignal[k1])[0][0]][-1]
-     except IndexError:
-       vh += len(k)
-       continue
-     while ecgsignal[k1][idx] < -0.5 + ecgsignal[k1][idx]:
-       slopes = np.diff(ecgsignal[k1][idx + 1:]) / np.diff(k1[idx + 1:])
-       idx = np.argmax(slopes < 0.05)
-     tchkp = ecgsignal[k1][idx:]
-     peaks = peakdetect(ecgsignal[k1], lookahead=1)
-     lowerPeaks = np.array([pek for pek in peaks[1] if pek[0] > idx])[1:]
-     if lowerPeaks == [] or len(lowerPeaks) < 2:
-       T_tk = np.where(ecgsignal[k1] == np.max(tchkp))[0]
+  ecgsignal = coeffs[0]'''
+  try:
+    findp = []
+    for lj in signal.find_peaks(ecgsignal)[0]:
+      findp.append(ecgsignal[lj])
+    findp = sorted(findp, reverse=True)[0:20]
+    visti = []
+    for k in np.where(ecgsignal > 0):
+      visti.append(ecgsignal[k])
+    peaks = peakdetect(ecgsignal, lookahead=7, delta=1)
+    higherPeaks = np.array(peaks[0])
+    lowerPeaks = np.array(peaks[1])
+    razno = [j-i for i, j in zip(lowerPeaks[:,0][:-1], lowerPeaks[:,0][1:])]
+    itg_del = []
+    itg_zn = []
+    pphi = []
+    for pph in razno:
+      for i, j in zip(lowerPeaks[:,0][:-1], lowerPeaks[:,0][1:]):
+          if j - i == pph:
+            pphi.append(i)
+      for i, j in zip(lowerPeaks[:,0][:-1], lowerPeaks[:,0][1:]):
+        if j - i == pph:
+          itg_del.append(list(range(int(i), int(j))))
+          itg_zn.append(ecgsignal[int(i):int(j)])
+    iznan = []
+    vosm = []
+    for ith in sorted(unique(itg_del)):
+      if len(sorted(unique(itg_del))) > 100:
+        Fignya.append('ygy')
+        continue
+    for ded in sorted(unique(itg_del)):
+      iop = scipy.signal.find_peaks(ecgsignal[:ded[0]], distance=30)[0]
+      if len(iop) > 2:
+        pass
+      if ded[-1] - ded[0] > 40:
+        iznan.append(ded)
+      elif ded[-1] - ded[0] < 40:
+        if len(iznan) > 1:
+          iznan.append(iznan[-1] + ded)
+          iznan.pop(-2)
+
+    def find_nearest(array, value):
+        array = np.asarray(array)
+        idx = (np.abs(array - value)).argmin()
+        return array[idx]
+    vh = 0
+    iznank = []
+    iznan = sorted(unique(iznan))
+    sp_l = []
+  except IndexError:
+    continue
+  def perr(iznan, vh, iznank, Itg_danny):
+    for k in iznan:
+     k1, k2 = np.array_split(k, 2)
+     if len(k1) / len(np.array_split(iznan[0], 2)[0]) > 7 and k1[0] + vh != (np.array_split(iznan[0], 2)[0])[0]:
+       T_tk = scipy.signal.find_peaks(ecgsignal[k1])[0][0]
+       R_tk = np.where(ecgsignal[k2] == np.max(ecgsignal[k2]))[0]
      else:
-        if abs(np.max(tchkp) - ecgsignal[k1][idx]) > abs(np.min([io[1] for io in lowerPeaks]) + ecgsignal[k1][idx]):
-          T_tk = np.where(ecgsignal[k1] == np.max(tchkp))[0]
-        else:
-         T_tk = np.where(ecgsignal[k1] == np.min([io[1] for io in lowerPeaks]))[0]
-     wen = -2
-     oi = False
-     R_tk = scipy.signal.find_peaks(ecgsignal[k2])[0][-1]
-     try:
-       while ecgsignal[k2][R_tk] not in sorted(ecgsignal[k2], reverse=True)[:5]:
-          yui = (scipy.signal.find_peaks(ecgsignal[k2]))
-          R_tk = yui[0][wen]
-          wen -= 1
-          if -(wen) > 5:
-            R_tk = yui[0][-1]
-            break
-     except IndexError:
-       vh += len(k)
-       continue
-     if min([ecgsignal[k2][R_tk], T_k[-1]]) * 1.5 > max([ecgsignal[k2][R_tk], T_k[-1]]) and T_k[-1] != []:
-       print((ecgsignal[k2][R_tk], T_k[-1]))
-       if iznan.index(k) - 1 < len(iznan):
+       slopes = np.diff(ecgsignal[k1]) / np.diff(k1)
+       sloup = np.diff(ecgsignal[k2][::-1]) / np.diff(k2[::-1])
+       scipy.signal.find_peaks(ecgsignal[k1])
+       idxx = np.argmax(slopes < 0.02)
+       idx = idxx
+       try:
+         uyuuu = np.argmax(slopes[2:] < 0.02)
+         uyuuuy = np.argsort(slopes < 0.02)
+
+         uyuuu = [i for i in uyuuuy if i > scipy.signal.find_peaks(ecgsignal[k1])[0][0]][-1]
+       except IndexError:
          vh += len(k)
          continue
-         sp_l.append(k + iznan[iznan.index(k) + 1])
-       vh += len(k)
-       continue
-     if ecgsignal[k2][R_tk] < ecgsignal[k1][T_tk] and ecgsignal[k][T_tk + 10] < ecgsignal[k2][R_tk]:
-       iznank.append(k[::-1])
-     sl = np.array_split(k2, 2)[1]
-     zag_itg = []
-     plt.subplots(nrows=1, ncols=1)
-     plt.plot(ecgsignal[k1], '--r')
-     lo = ecgsignal[k1]
-     plt.plot(T_tk, lo[T_tk], 'ob')
-     zag_itg.append([uyuuu, ecgsignal[k1][uyuuu]])
-     sloup = np.diff(ecgsignal[k1][int(T_tk):]) / np.diff(k1[int(T_tk):])
-     idxx = [ps for ps in sloup if ps < 0.02]
-     try:
-       zag_itg.append([T_tk, lo[T_tk]])
-
-       T_k.append(lo[T_tk])
-     except IndexError:
-      vh += len(k)
-      continue
-     plt.subplots(nrows=1, ncols=1)
-     plt.plot(ecgsignal[k2], ':b')
-
-     lo = ecgsignal[k2]
-     plt.plot(R_tk, lo[R_tk], 'og')
-     sloup = np.diff(ecgsignal[k2][:int(R_tk)]) / np.diff(k2[:int(R_tk)])
-     idxx = [ps for ps in sloup if ps < 0.02]
-     zag_itg.append([R_tk, lo[R_tk]])
-     try:
-       plt.plot(np.where(ecgsignal[k2] == find_nearest(ecgsignal[k2], idxx[-1])), idxx[-1], 'ob')
-     except IndexError:
-       vh += len(k)
-       continue
-     ji = []
-     ij = []
-     try:
-       if len(sl[:R_tk - len(np.array_split(k2, 2)[0])]) < max(scipy.signal.find_peaks(ecgsignal[k2][:R_tk - len(np.array_split(k2, 2)[0])])[0]):
-         zag_itg.append([0, 0])
-         zag_itg.append([0, 0])
-         zag_itg.append([np.where(ecgsignal[k1] == min(ecgsignal[k1])), min(ecgsignal[k1])])
-         zag_itg.append([np.where(ecgsignal[k2] == min(ecgsignal[k2])), min(ecgsignal[k2])])
-         zag_itg.append([k, k1, k2])
-         Itg_danny.append([zag_itg])
+       while ecgsignal[k1][idx] < -0.5 + ecgsignal[k1][idx]:
+         slopes = np.diff(ecgsignal[k1][idx + 1:]) / np.diff(k1[idx + 1:])
+         idx = np.argmax(slopes < 0.05)
+       tchkp = ecgsignal[k1][idx:]
+       peaks = peakdetect(ecgsignal[k1], lookahead=1)
+       lowerPeaks = np.array([pek for pek in peaks[1] if pek[0] > idx])[1:]
+       if lowerPeaks == [] or len(lowerPeaks) < 2:
+         T_tk = np.where(ecgsignal[k1] == np.max(tchkp))[0]
+       else:
+          if abs(np.max(tchkp) - ecgsignal[k1][idx]) > abs(np.min([io[1] for io in lowerPeaks]) + ecgsignal[k1][idx]):
+            T_tk = np.where(ecgsignal[k1] == np.max(tchkp))[0]
+          else:
+           T_tk = np.where(ecgsignal[k1] == np.min([io[1] for io in lowerPeaks]))[0]
+       wen = -2
+       oi = False
+       try:
+         R_tk = scipy.signal.find_peaks(ecgsignal[k2])[0][-1]
+       except IndexError:
          vh += len(k)
          continue
-     except ValueError:
-       pass
+       try:
+         while ecgsignal[k2][R_tk] not in sorted(ecgsignal[k2], reverse=True)[:5]:
+            yui = (scipy.signal.find_peaks(ecgsignal[k2]))
+            R_tk = yui[0][wen]
+            wen -= 1
+            if -(wen) > 5:
+              R_tk = yui[0][-1]
+              break
+       except IndexError:
+         vh += len(k)
+         continue
+       if min([ecgsignal[k2][R_tk], T_k[-1]]) * 1.5 > max([ecgsignal[k2][R_tk], T_k[-1]]) and T_k[-1] != []:
+         if iznan.index(k) - 1 < len(iznan):
+           vh += len(k)
+           continue
+           sp_l.append(k + iznan[iznan.index(k) + 1])
+         vh += len(k)
+         continue
+       if ecgsignal[k2][R_tk] < ecgsignal[k1][T_tk] and ecgsignal[k][T_tk + 10] < ecgsignal[k2][R_tk]:
+         iznank.append(k[::-1])
+       sl = np.array_split(k2, 2)[1]
+       zag_itg = []
+       lo = ecgsignal[k1]
+       zag_itg.append([uyuuu, ecgsignal[k1][uyuuu]])
+       sloup = np.diff(ecgsignal[k1][int(T_tk):]) / np.diff(k1[int(T_tk):])
+       idxx = [ps for ps in sloup if ps < 0.02]
+       try:
+         zag_itg.append([T_tk, lo[T_tk]])
 
-     for km, kn in zip(ecgsignal[sl][:R_tk - len(np.array_split(k2, 2)[0])][scipy.signal.find_peaks(-1 * ecgsignal[k2][:R_tk - len(np.array_split(k2, 2)[0])])[0]], sl[:R_tk - len(np.array_split(k2, 2)[0])][scipy.signal.find_peaks(ecgsignal[k2][:R_tk - len(np.array_split(k2, 2)[0])])[0]]):
-       kop = 0
-       plt.plot(np.where(ecgsignal[k2] == km)[0], km, 'or')
-       ji.append(km)
-       ij.append([km, np.where(ecgsignal[k2] == km)[0]])
-     f = -1
-     if len(ij) < 4:
-       if ij == []:
-          zag_itg.append([0, 0])
+         T_k.append(lo[T_tk])
+       except IndexError:
+        vh += len(k)
+        continue
+
+       lo = ecgsignal[k2]
+       sloup = np.diff(ecgsignal[k2][:int(R_tk)]) / np.diff(k2[:int(R_tk)])
+       idxx = [ps for ps in sloup if ps < 0.02]
+       zag_itg.append([R_tk, lo[R_tk]])
+       try:
+         pass
+       except IndexError:
+         vh += len(k)
+         continue
+       ji = []
+       ij = []
+       try:
+         if len(sl[:R_tk - len(np.array_split(k2, 2)[0])]) < max(scipy.signal.find_peaks(ecgsignal[k2][:R_tk - len(np.array_split(k2, 2)[0])])[0]):
+           zag_itg.append([0, 0])
+           zag_itg.append([0, 0])
+           zag_itg.append([np.where(ecgsignal[k1] == min(ecgsignal[k1])), min(ecgsignal[k1])])
+           zag_itg.append([np.where(ecgsignal[k2] == min(ecgsignal[k2])), min(ecgsignal[k2])])
+           zag_itg.append([k, k1, k2])
+           Itg_danny.append([zag_itg])
+           vh += len(k)
+           continue
+       except ValueError:
+         pass
+       try:
+         for km, kn in zip(ecgsignal[sl][:R_tk - len(np.array_split(k2, 2)[0])][scipy.signal.find_peaks(-1 * ecgsignal[k2][:R_tk - len(np.array_split(k2, 2)[0])])[0]], sl[:R_tk - len(np.array_split(k2, 2)[0])][scipy.signal.find_peaks(ecgsignal[k2][:R_tk - len(np.array_split(k2, 2)[0])])[0]]):
+           kop = 0
+           ji.append(km)
+           ij.append([km, np.where(ecgsignal[k2] == km)[0]])
+       except IndexError:
+         vh += len(k)
+         continue
+       f = -1
+       if len(ij) < 4:
+         if ij == []:
+            zag_itg.append([0, 0])
+            zag_itg.append([0, 0])
+            zag_itg.append([np.where(ecgsignal[k1] == min(ecgsignal[k1])), min(ecgsignal[k1])])
+            zag_itg.append([np.where(ecgsignal[k2] == min(ecgsignal[k2])), min(ecgsignal[k2])])
+            zag_itg.append([k, k1, k2])
+            Itg_danny.append([zag_itg])
+            vh += len(k)
+            continue
+
+         if len(ij) == 1:
+          zag_itg.append([ij[0][1], ij[0][0]])
+          f = 0
+         elif len(ij) == 3 and ij[-3] < ij[-2]:
+           zag_itg.append([ij[-2][1], ij[-2][0]])
+           f = -2
+         elif ij[-1] > ij[-2]:
+           zag_itg.append([ij[-2][1], ij[-2][0]])
+           f = -2
+         elif ij[-1] < ij[-2]:
+           zag_itg.append([ij[-1][1], ij[-1][0]])
+           f = -1
+         if len(ij) > 1:
+           pri = np.where(ecgsignal[k2] == max(ecgsignal[k2][scipy.signal.find_peaks(ecgsignal[k2][:int(ij[f][1])])[0]][:-1]))
+           zag_itg.append([pri[0], ecgsignal[k2][pri[0]]])
+           zag_itg.append([np.where(ecgsignal[k1] == min(ecgsignal[k1])), min(ecgsignal[k1])])
+           zag_itg.append([np.where(ecgsignal[k2] == min(ecgsignal[k2])), min(ecgsignal[k2])])
+           zag_itg.append([k, k1, k2])
+           Itg_danny.append([zag_itg])
+         else:
           zag_itg.append([0, 0])
           zag_itg.append([np.where(ecgsignal[k1] == min(ecgsignal[k1])), min(ecgsignal[k1])])
           zag_itg.append([np.where(ecgsignal[k2] == min(ecgsignal[k2])), min(ecgsignal[k2])])
           zag_itg.append([k, k1, k2])
           Itg_danny.append([zag_itg])
-          vh += len(k)
-          continue
 
-       if len(ij) == 1:
-        zag_itg.append([ij[0][1], ij[0][0]])
-        plt.plot(ij[0][1], ij[0][0], 'og')
-        f = 0
-       elif len(ij) == 3 and ij[-3] < ij[-2]:
-         zag_itg.append([ij[-2][1], ij[-2][0]])
-         plt.plot(ij[-2][1], ij[-2][0], 'og')
-         f = -2
-       elif ij[-1] > ij[-2]:
-         zag_itg.append([ij[-2][1], ij[-2][0]])
-         plt.plot(ij[-2][1], ij[-2][0], 'og')
-         f = -2
-       elif ij[-1] < ij[-2]:
-         zag_itg.append([ij[-1][1], ij[-1][0]])
-         plt.plot(ij[-1][1], ij[-1][0], 'og')
-         f = -1
-       if len(ij) > 1:
+       else:
+         while ij[f][0] > mean(ji[:-2]) or ij[f - 1][0] > 0.4 + ij[f][0]:
+           if -(f - 1) == len(ij):
+             f = -2
+             break
+           f -= 1
+         zag_itg.append([ij[f][1], ij[f][0]])
          pri = np.where(ecgsignal[k2] == max(ecgsignal[k2][scipy.signal.find_peaks(ecgsignal[k2][:int(ij[f][1])])[0]][:-1]))
-         plt.plot(pri[0], ecgsignal[k2][pri[0]], 'og')
          zag_itg.append([pri[0], ecgsignal[k2][pri[0]]])
          zag_itg.append([np.where(ecgsignal[k1] == min(ecgsignal[k1])), min(ecgsignal[k1])])
          zag_itg.append([np.where(ecgsignal[k2] == min(ecgsignal[k2])), min(ecgsignal[k2])])
          zag_itg.append([k, k1, k2])
          Itg_danny.append([zag_itg])
-       else:
-        zag_itg.append([0, 0])
-        zag_itg.append([np.where(ecgsignal[k1] == min(ecgsignal[k1])), min(ecgsignal[k1])])
-        zag_itg.append([np.where(ecgsignal[k2] == min(ecgsignal[k2])), min(ecgsignal[k2])])
-        zag_itg.append([k, k1, k2])
-        Itg_danny.append([zag_itg])
-
-     else:
-       while ij[f][0] > mean(ji[:-2]) or ij[f - 1][0] > 0.4 + ij[f][0]:
-         if -(f - 1) == len(ij):
-           f = -2
-           break
-         f -= 1
-       plt.plot(ij[f][1], ij[f][0], 'og')
-       zag_itg.append([ij[f][1], ij[f][0]])
-       pri = np.where(ecgsignal[k2] == max(ecgsignal[k2][scipy.signal.find_peaks(ecgsignal[k2][:int(ij[f][1])])[0]][:-1]))
-       plt.plot(pri[0], ecgsignal[k2][pri[0]], 'og')
-       zag_itg.append([pri[0], ecgsignal[k2][pri[0]]])
-       zag_itg.append([np.where(ecgsignal[k1] == min(ecgsignal[k1])), min(ecgsignal[k1])])
-       zag_itg.append([np.where(ecgsignal[k2] == min(ecgsignal[k2])), min(ecgsignal[k2])])
-       zag_itg.append([k, k1, k2])
-       Itg_danny.append([zag_itg])
-     vh += len(k)
-if len(iznan) > 1:
-  perr(iznan, vh, iznank, Itg_danny)
-vh = 6789456
-S_h = []
-Result = []
-for lkm in Itg_danny[:]:
-  for spiy in lkm[:]:
-    Otv = []
-    amp_niz = spiy[0][1]
-    T_h = [spiy[1][0], spiy[1][1] - amp_niz]
-    R_h = [spiy[2][0], spiy[2][1] - amp_niz]
-    Q_h = [spiy[3][0], spiy[3][1] - amp_niz]
-    P_h = [spiy[4][0], spiy[4][1] - amp_niz]
-    S_p = [spiy[6][0], spiy[6][1] - amp_niz]
-    dlin = [spiy[7][0], spiy[7][1], spiy[7][2]]
-    if T_h[1] > R_h[1]:
-      Otv.append(1)
-    if abs(Q_h[1]) / R_h[1] > 30:
-      Otv.append(2)
-    if abs(Q_h[1]) / R_h[1] > 70:
-      Otv.append(3)
-    if T_h[1] < -0.1:
-      Otv.append(4)
-    if T_h[1] < -0.7:
-      Otv.append(5)
-    if T_h[1] < -0.7:
-      Otv.append(5)
-    if T_h[1] > R_h[1] / 3 * 2:
-      Otv.append(5)
-    elif R_h[0] - Q_h[0] > 10:
-      Otv.append(6)
-    elif T_h[1] > 0.7 * R_h[1]:
-      Otv.append(7)
-    if P_h[1] > 0.4:
-      Otv.append(8)
-      Otv.append(8)
-    if abs(T_h[1]) / R_h[1] > 40:
-      Otv.append(9)
-    if S_p[1] < -2.6:
-      Otv.append(10)
-      Otv.append(10)
-      Otv.append(10)
-    if S_p[1] < -1.2:
-      Otv.append(10)
+       vh += len(k)
+  if len(iznan) > 1:
+    perr(iznan, vh, iznank, Itg_danny)
+  vh = 6789456
+  S_h = []
+  Result = []
+  for lkm in Itg_danny[:]:
+    for spiy in lkm[:]:
+      Otv = []
+      amp_niz = spiy[0][1]
+      T_h = [spiy[1][0], spiy[1][1] - amp_niz]
+      R_h = [spiy[2][0], spiy[2][1] - amp_niz]
+      Q_h = [spiy[3][0], spiy[3][1] - amp_niz]
+      P_h = [spiy[4][0], spiy[4][1] - amp_niz]
+      S_p = [spiy[6][0], spiy[6][1] - amp_niz]
+      dlin = [spiy[7][0], spiy[7][1], spiy[7][2]]
+      if T_h[1] > R_h[1]:
+        Otv.append(1)
+      if abs(Q_h[1]) / R_h[1] > 30:
+        Otv.append(2)
+      if abs(Q_h[1]) / R_h[1] > 70:
+        Otv.append(3)
+        Otv.append(3)
+      if T_h[1] < -0.1:
+        Otv.append(4)
+      if T_h[1] < -0.7:
+        Otv.append(5)
+        Otv.append(5)
+        Otv.append(5)
+        Otv.append(5)
+      if T_h[1] > R_h[1] / 3 * 2:
+        Otv.append(5)
+      elif R_h[0] - Q_h[0] > 10:
+        Otv.append(6)
+      elif T_h[1] > 0.7 * R_h[1]:
+        Otv.append(7)
+        Otv.append(7)
+        Otv.append(7)
+      if P_h[1] > 0.4:
+        Otv.append(8)
+        Otv.append(8)
+      if abs(T_h[1]) / R_h[1] > 40:
+        Otv.append(9)
+      if S_p[1] < -2.6:
+        Otv.append(10)
+        Otv.append(10)
+      if S_p[1] < -1.2:
+        Otv.append(10)
 
 
-    odnk = len(k)
-    if int(Q_h[0]) - int(S_p[0][0]) != 0:
-      if ((len(dlin[1]) - int(Q_h[0])) + int(S_p[0][0])) / len(dlin[0]) > 0.8:
-        Otv.append(11)
-    if Q_h[0] + P_h[0] != 0:
-      if ((len(dlin[1]) - int(Q_h[0])) + int(P_h[0])) / len(dlin[0]) > 0.8:
-        Otv.append(12)
-    Result.append([Otv, len(Otv) / 8])
-res_std = ([len(r) for r in iznan])
-for u in res_std:
-  if u / 3 * 2 > min(res_std) or max(res_std) / 3 * 2 > u:
-    Result.append(['Y', res_std.index(u)])
-lok = []
-for lkm in Itg_danny:
-  for spiy in lkm:
-    amp_niz = spiy[0][1]
-    R_h = [spiy[2][0], spiy[2][1] - amp_niz]
-    lok.append(R_h[1])
-for lo in lok:
-  #print(lo)
-  if min(lok) * 1.5 < lo:
-    Result.append(['t', lok.index(lo)])
-    #print('ohib')
-plo = []
-#for io in Result:
-#  print(io)
-jim = 1
-for res, lores in zip([i for i in Result if type(i)], [i for i in Result if type(i) == list]):
-   if jim == lores[1]:
-     Result[jim][1] += 0.125
-   jim += 1
-jim = []
-otvG = Result[1]
-Result = [k for k in Result if k[0] not in ['Y', 't']]
-ResT = []
-ResR = []
-for Rt in Result:
-  if len(Rt[0]) > 1:
-    for i in range(len(Rt[0]) - 1):
+      odnk = len(k)
+      if int(Q_h[0]) - int(S_p[0][0]) != 0:
+        if ((len(dlin[1]) - int(Q_h[0])) + int(S_p[0][0])) / len(dlin[0]) > 0.8:
+          Otv.append(11)
+          Otv.append(11)
+      if Q_h[0] + P_h[0] != 0:
+        if ((len(dlin[1]) - int(Q_h[0])) + int(P_h[0])) / len(dlin[0]) > 0.8:
+          Otv.append(12)
 
+      Result.append([Otv, len(Otv) / 8])
+  res_std = ([len(r) for r in iznan])
+  for u in res_std:
+    if u / 3 * 2 > min(res_std) or max(res_std) / 3 * 2 > u:
+      Result.append(['Y', res_std.index(u)])
+  lok = []
+  for lkm in Itg_danny:
+    for spiy in lkm:
+      amp_niz = spiy[0][1]
+      R_h = [spiy[2][0], spiy[2][1] - amp_niz]
+      lok.append(R_h[1])
+  for lo in lok:
+    if min(lok) * 1.5 < lo:
+      Result.append(['t', lok.index(lo)])
+  plo = []
+  jim = 1
+  for res, lores in zip([i for i in Result if type(i)], [i for i in Result if type(i) == list]):
+     if jim == lores[1]:
+       Result[jim][1] += 0.125
+     jim += 1
+  jim = []
+  try:
+    otvG = Result[1]
+  except IndexError:
+    continue
+  Result = [k for k in Result if k[0] not in ['Y', 't']]
+  ResT = []
+  ResR = []
+  for Rt in Result:
+    if len(Rt[0]) > 1:
+      for i in range(len(Rt[0]) - 1):
+
+        ResT.append(Rt[1])
+        ResR.append(Rt[0][i])
+    else:
       ResT.append(Rt[1])
-      ResR.append(Rt[0][i])
-  else:
-    ResT.append(Rt[1])
-    ResR.append(Rt[0])
-for index, item in enumerate(ResR):
- if item == []:
-    ResR[index] = 0
-for i in ResR:
-  if type(i) == list:
-    ResR[ResR.index(i)] = int(i[0])
-#print(ResT, ResR)
-Rese = []
-poi = []
-for i, j in zip(np.unique(ResT, return_counts= True)[0], np.unique(ResR, return_counts= True)[1]):
-  Rese.append([i, j])
-for jiu in Rese:
-  if jiu[1] > len(ResR) / 2:
-    if jiu[0] >= 0.125:
-      if jiu[0] >= 2.5:
+      ResR.append(Rt[0])
+  for index, item in enumerate(ResR):
+   if item == []:
+      ResR[index] = 0
+  for i in ResR:
+    if type(i) == list:
+      ResR[ResR.index(i)] = int(i[0])
+  Rese = []
+  poi = []
+  reska = []
+  for i, j in zip(np.unique(ResT, return_counts= True)[0], np.unique(ResR, return_counts= True)[1]):
+    reska.append(j)
+    Rese.append([i, j])
+  if sum(reska) <= 24:
+    for jiu in Rese:
+      if jiu[1] > len(ResR) / 2:
+        if jiu[0] > 0.125:
+          if jiu[0] >= 2.5:
+            poi.append(1)
+      if jiu[1] > len(ResR) / 3 * 2:
+        if jiu[0] >= 0.5:
+          poi.append(1)
+      if jiu[1] > 20:
         poi.append(1)
-  if jiu[1] > len(ResR) / 3 * 2:
-    if jiu[0] >= 0.5:
-      poi.append(1)
-if [iuy for iuy in Rese] == [iuy for iuy in Rese if iuy[0] >= 0.25]:
-  poi.append(1)
-elif len(Rese) == 1:
-  poi.append(1)
-if poi:
-  print(True)
+        
+    if len(Rese) == 1:
+      pass
+    else:
+      if poi and ((0.25 not in [iuy[0] for iuy in Rese]) or (0.125 not in [iuy[0] for iuy in Rese]) or (0.0 not in [iuy[0] for iuy in Rese])):
+        poi = []
+  if poi:
+    ty.append([1, Rese, Otv])
+  elif poi == []:
+    ty.append([0, Rese, Otv])
+import csv
+results = []
+with open('train_gts.csv') as File:
+    reader = csv.DictReader(File)
+    for row in reader:
+        results.append(row)
+lek = []
+for p, uiop in zip(ty, results[1:]):
+  if int(p[0]) != int(uiop['myocard']):
+    lek.append(1)
+print(-((len(lek) / 2102) * 100 - 100))
